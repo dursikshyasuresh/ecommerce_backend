@@ -1,41 +1,59 @@
-import multer from 'multer';
-import path from 'path';
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
-const storage = multer.diskStorage({
-    destination: (req,file,cb) => {
-        cb(null,"uploads/categories")
-    },
+const createUpload = (folder) => {
 
-    filename: (req,res,cb) => {
-        const uniqueName = Date.now() + "-" + Math.round(Math.random() + 1e9) + path.extname(file.originalname)
+    const uploadDir = path.join("uploads", folder);
 
-        cb(null,uniqueName)
-    }
-})
-
-const fileFilter = (req,res,cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/
-
-    const extension = allowedTypes.test(
-        path.extname(file.originalname).toLowerCase()
-    )
-
-    const mimeType = allowedTypes.test(file.mimeType)
-    
-    if(extension && mimeType) {
-        cb(null,true)
-    }else{
-        cb(new Error("Only JPG, JPEG, PNG and WEBP images are allowed."))
+    // Create folder if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-}
+    const storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+            cb(null, uploadDir);
+        },
 
-const upload = multer({
-    storage,
-    fileFilter,
-    limits: {
-        fileSize: 5 * 1024 * 1024   // 5 MB
-    }
-})
+        filename: (req, file, cb) => {
+            const uniqueName =
+                Date.now() +
+                "-" +
+                Math.round(Math.random() * 1e9) +
+                path.extname(file.originalname);
 
-export default upload
+            cb(null, uniqueName);
+        }
+    });
+
+    const fileFilter = (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|webp/;
+
+        const extension = allowedTypes.test(
+            path.extname(file.originalname).toLowerCase()
+        );
+
+        const mimeType = allowedTypes.test(file.mimetype);
+
+        if (extension && mimeType) {
+            cb(null, true);
+        } else {
+            cb(
+                new Error(
+                    "Only JPG, JPEG, PNG and WEBP images are allowed."
+                )
+            );
+        }
+    };
+
+    return multer({
+        storage,
+        fileFilter,
+        limits: {
+            fileSize: 5 * 1024 * 1024
+        }
+    });
+};
+
+export default createUpload;

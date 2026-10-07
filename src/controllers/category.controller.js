@@ -2,6 +2,8 @@ import Category from "../models/category.model.js";
 import asyncHandler from "../utils/asyncHandler.js"
 import ErrorMessage from "../utils/ErrorMessage.js"
 import generateSlug from "../utils/generateSlug.js"
+import path from "path"
+import fs from "fs"
 
 /** 
  * @desc add new category
@@ -31,4 +33,85 @@ export const createCategory = asyncHandler(async(req,res) => {
         category
     })
        
+})
+
+
+/** 
+ * @desc get all categories
+ * @api /api/categories
+ * @access Public
+*/
+
+export const getCategories = asyncHandler(async(req,res) => {
+      const categories = await Category.find()
+
+      if(!categories || categories.length === 0) throw ErrorMessage(404,"Categories not found!")
+
+      res.status(200).json({
+        success: true,
+        categories
+      })  
+})
+
+/** 
+ * @desc get single category
+ * @api /api/category/id
+ * @access Public
+*/
+
+export const getSingleCategory = asyncHandler(async(req,res) => {
+    const category = await Category.findById(req.params.id)
+
+    if(!category) throw ErrorMessage(404,"Category not found!")
+    
+    res.status(200).json({
+        success: true,
+        category
+      })      
+})
+
+/** 
+ * @desc update category
+ * @api /api/category/id
+ * @access Admin only
+*/
+
+export const updateCategory = asyncHandler(async(req,res) => {
+    const category = await Category.findById(req.params.id)
+    if(!category) throw ErrorMessage(404,"Category not found!")
+    
+    // update name and slug
+    if(req.body.name){
+        category.name = req.body.name,
+        category.slug = generateSlug(req.body.name)
+    } 
+    
+    // update image if new image is uploaded
+    if(req.file){
+        category.image = `uploads/categories/${req.file.filename}`
+    }
+
+    await category.save()
+
+    res.status(200).json({
+        success: true,
+        category
+      })  
+})
+
+/** 
+ * @desc delete category
+ * @api /api/category/id
+ * @access Admin only
+*/
+
+export const deleteCategory = asyncHandler(async(req,res) => {
+    const category = await Category.findById(req.params.id)
+    if(!category) throw ErrorMessage(404,"Category not found!")
+    
+   await Category.findByIdAndDelete(req.params.id)    
+   res.status(200).json({
+    success: true,
+    message: "Category deleted sucessfully"
+   }) 
 })
