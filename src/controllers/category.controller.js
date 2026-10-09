@@ -2,8 +2,6 @@ import Category from "../models/category.model.js";
 import asyncHandler from "../utils/asyncHandler.js"
 import ErrorMessage from "../utils/ErrorMessage.js"
 import generateSlug from "../utils/generateSlug.js"
-import path from "path"
-import fs from "fs"
 
 /** 
  * @desc add new category
