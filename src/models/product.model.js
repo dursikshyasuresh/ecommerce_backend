@@ -31,11 +31,6 @@ const productSchema = new mongoose.Schema({
         ref: "Category",
         required: [true,"Product category is required."]
     },
-    image: {
-        type: String,
-        required: [true,"Product image is required."],
-        trim: true
-    },
     images: [{
         type: String,
         trim: true
@@ -60,6 +55,10 @@ const productSchema = new mongoose.Schema({
     isNewArrival: {
         type: Boolean,
         default: false
+    },
+    slug:{
+        type: String,
+        required: true
     }
 },{
     timestamps: true
