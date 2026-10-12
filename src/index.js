@@ -9,6 +9,7 @@ import productRoute from "./routes/product.route.js"
 import orderRoute from "./routes/order.route.js"
 import cartRoute from "./routes/cart.route.js"
 import errorHandler from "./middlewares/error.middleware.js"
+import cookieParser from "cookie-parser"
 
 dotenv.config()
 const app = express()
@@ -17,6 +18,7 @@ const app = express()
 app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 app.use(morgan("dev"))
+app.use(cookieParser())
 
 // db connection
 connectDB()
