@@ -3,6 +3,7 @@ import asyncHandler from "../utils/asyncHandler.js"
 import ErrorMessage from "../utils/ErrorMessage.js"
 import generateSlug from "../utils/generateSlug.js"
 import Product from "../models/product.model.js";
+import searchFilter from "../filters/searchFilter.js";
 
 
 /** 
@@ -47,14 +48,14 @@ export const createProduct = asyncHandler(async(req,res) => {
 
 /** 
  * @desc get all products
- * @api /api/products 
+ * @api /api/products?search=
  * @access Public
 */
 
 export const getProducts = asyncHandler(async(req,res) => {
-    const products = await Product.find().populate("category","name slug").sort({createdAt: -1})
+    const filter = searchFilter(req.query.search, ["title","description"])
 
-    if(!products || products.length === 0) throw ErrorMessage(404,"Products not found!")
+    const products = await Product.find(filter).populate("category","name slug").sort({createdAt: -1})
 
     res.status(200).json({
         success: true,
