@@ -1,3 +1,4 @@
+import SearchFilter from "../filters/searchFilter.js";
 import Category from "../models/category.model.js";
 import asyncHandler from "../utils/asyncHandler.js"
 import ErrorMessage from "../utils/ErrorMessage.js"
@@ -41,7 +42,11 @@ export const createCategory = asyncHandler(async(req,res) => {
 */
 
 export const getCategories = asyncHandler(async(req,res) => {
-      const categories = await Category.find()
+    // accessing serach value from query
+    const {search} = req.query    // -> /api/categories?search=audio
+    const filter = SearchFilter(search,["name"])
+    
+    const categories = await Category.find(filter)
 
       if(!categories || categories.length === 0) throw ErrorMessage(404,"Categories not found!")
 

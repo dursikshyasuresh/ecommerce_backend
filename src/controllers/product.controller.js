@@ -6,6 +6,7 @@ import Product from "../models/product.model.js";
 import searchFilter from "../filters/searchFilter.js";
 
 
+
 /** 
  * @desc add new product
  * @api /api/product/create 
@@ -53,7 +54,8 @@ export const createProduct = asyncHandler(async(req,res) => {
 */
 
 export const getProducts = asyncHandler(async(req,res) => {
-    const filter = searchFilter(req.query.search, ["title","description"])
+    const {search} = req.query
+    const filter = searchFilter(search, ["title","description"])
 
     const products = await Product.find(filter).populate("category","name slug").sort({createdAt: -1})
 
