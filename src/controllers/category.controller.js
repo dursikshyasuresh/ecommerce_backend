@@ -1,3 +1,4 @@
+import createPagination from "../filters/pagination.js";
 import SearchFilter from "../filters/searchFilter.js";
 import Category from "../models/category.model.js";
 import asyncHandler from "../utils/asyncHandler.js"
@@ -43,16 +44,20 @@ export const createCategory = asyncHandler(async(req,res) => {
 
 export const getCategories = asyncHandler(async(req,res) => {
     // accessing serach value from query
-    const {search} = req.query    // -> /api/categories?search=audio
+    const {search,page,limit} = req.query    // -> /api/categories?search=audio
     const filter = SearchFilter(search,["name"])
     
-    const categories = await Category.find(filter)
+    const total = await Category.countDocuments(filter)
+    const pagination = createPagination(page,limit,total)
+    const categories = await Category.find(filter).limit(pagination.limit)
+    .skip(pagination.skip)
 
       if(!categories || categories.length === 0) throw ErrorMessage(404,"Categories not found!")
 
       res.status(200).json({
         success: true,
-        categories
+        categories,
+        pagination
       })  
 })
 

@@ -4,6 +4,7 @@ import ErrorMessage from "../utils/ErrorMessage.js"
 import generateSlug from "../utils/generateSlug.js"
 import Product from "../models/product.model.js";
 import searchFilter from "../filters/searchFilter.js";
+import createPagination from "../filters/pagination.js";
 
 
 
@@ -54,14 +55,21 @@ export const createProduct = asyncHandler(async(req,res) => {
 */
 
 export const getProducts = asyncHandler(async(req,res) => {
-    const {search} = req.query
+    const {search,page,limit} = req.query
     const filter = searchFilter(search, ["title","description"])
-
-    const products = await Product.find(filter).populate("category","name slug").sort({createdAt: -1})
+    
+    const total = await Product.countDocuments(filter)
+    const pagination = createPagination(page,limit,total)
+    const products = await Product.find(filter)
+    .limit(pagination.limit)
+    .skip(pagination.skip)
+    .populate("category","name slug")
+    .sort({createdAt: -1})
 
     res.status(200).json({
         success: true,
-        products
+        products,
+        pagination
     })
 })
 
