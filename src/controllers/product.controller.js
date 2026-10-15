@@ -5,6 +5,7 @@ import generateSlug from "../utils/generateSlug.js"
 import Product from "../models/product.model.js";
 import searchFilter from "../filters/searchFilter.js";
 import createPagination from "../filters/pagination.js";
+import SearchFilter from "../filters/searchFilter.js";
 
 
 
@@ -55,8 +56,24 @@ export const createProduct = asyncHandler(async(req,res) => {
 */
 
 export const getProducts = asyncHandler(async(req,res) => {
-    const {search,page,limit} = req.query
-    const filter = searchFilter(search, ["title","description"])
+    const {search,page,limit,category,minPrice,maxPrice} = req.query   
+    let filter = {
+        ...SearchFilter(search,["name"])
+    }
+
+    // check category
+    const existsCategory = await Category.findById(category)
+    if(!existsCategory) throw ErrorMessage(404,"Category not found!")
+
+    // filter by category
+    if(category) filter.category = existsCategory._id
+
+    // filter by minPrice and maxPrice
+    if(minPrice || maxPrice){
+        filter.price = {}
+        if(minPrice) filter.price.$gte = Number(minPrice)
+        if(maxPrice) filter.price.$lte = Number(maxPrice)
+    }
     
     const total = await Product.countDocuments(filter)
     const pagination = createPagination(page,limit,total)
