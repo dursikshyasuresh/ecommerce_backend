@@ -56,11 +56,12 @@ export const createProduct = asyncHandler(async(req,res) => {
 */
 
 export const getProducts = asyncHandler(async(req,res) => {
-    const {search,page,limit,category,minPrice,maxPrice} = req.query   
+    const {search,page,limit,category,minPrice,maxPrice,sort} = req.query   
     let filter = {
         ...SearchFilter(search,["name"])
     }
 
+    if(category){
     // check category
     const existsCategory = await Category.findById(category)
     if(!existsCategory) throw ErrorMessage(404,"Category not found!")
@@ -68,20 +69,35 @@ export const getProducts = asyncHandler(async(req,res) => {
     // filter by category
     if(category) filter.category = existsCategory._id
 
+    }
+
     // filter by minPrice and maxPrice
     if(minPrice || maxPrice){
         filter.price = {}
         if(minPrice) filter.price.$gte = Number(minPrice)
         if(maxPrice) filter.price.$lte = Number(maxPrice)
     }
+
+    // sorting
+    let sortOptions = {createdAt: -1}
+
+    // sort by price
+    if(sort === "asc"){
+        sortOptions = {price:1}
+    }else if(sort === "desc"){
+        sortOptions = {price:-1}  
+    }else if(sort === "oldest"){
+        sortOptions = {createdAt: 1}
+    }else if(sort === "newest"){
+        sortOptions = {createdAt: -1}
+    }
     
     const total = await Product.countDocuments(filter)
     const pagination = createPagination(page,limit,total)
-    const products = await Product.find(filter)
+    const products = await Product.find(filter).sort(sortOptions)
     .limit(pagination.limit)
     .skip(pagination.skip)
     .populate("category","name slug")
-    .sort({createdAt: -1})
 
     res.status(200).json({
         success: true,
