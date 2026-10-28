@@ -1,136 +1,147 @@
-import createPagination from "../filters/pagination.js";
-import SearchFilter from "../filters/searchFilter.js";
-import Category from "../models/category.model.js";
+import createPagination from "../filters/pagination.js"
+import SearchFilter from "../filters/searchFilter.js"
+import Category from "../models/category.model.js"
 import asyncHandler from "../utils/asyncHandler.js"
 import ErrorMessage from "../utils/ErrorMessage.js"
 import generateSlug from "../utils/generateSlug.js"
 
-/** 
+/**
  * @desc add new category
- * @api /api/category/create 
+ * @api /api/category/create
  * @access Admin only
-*/
+ */
 
-export const createCategory = asyncHandler(async(req,res) => {
-    const {name} = req.body
+export const createCategory = asyncHandler(async (req, res) => {
+  const { name } = req.body
 
-    if(!name) throw ErrorMessage(400,"Category name is required!")
-    if(!req.file) throw ErrorMessage(400,"Category image is required!")
-    
-    // create slug from category name
-    const slug = generateSlug(name) 
-    
-    // create category
-    const category = await Category.create({
-        name,
-        image: `/uploads/categories/${req.file.filename}`,
-        slug
-    })
+  if (!name) throw ErrorMessage(400, "Category name is required!")
+  if (!req.file) throw ErrorMessage(400, "Category image is required!")
 
-    res.status(201).json({
-        success: true,
-        message: "Category added sucessfully!",
-        category
-    })
-       
+  // create slug from category name
+  const slug = generateSlug(name)
+
+  // create category
+  const category = await Category.create({
+    name,
+    image: `/uploads/categories/${req.file.filename}`,
+    slug,
+  })
+
+  res.status(201).json({
+    success: true,
+    message: "Category added sucessfully!",
+    category,
+  })
 })
 
-
-/** 
+/**
  * @desc get all categories
  * @api /api/categories
  * @access Public
-*/
+ */
 
-export const getCategories = asyncHandler(async(req,res) => {
-    // accessing serach value from query
-    const {search,page,limit,category} = req.query    // -> /api/categories?search=audio
-    let filter = {
-        ...SearchFilter(search,["name"])
+export const getCategories = asyncHandler(async (req, res) => {
+  // accessing serach value from query
+  const { search, page, limit, category } = req.query // -> /api/categories?search=audio
+  let filter = {
+    ...SearchFilter(search, ["name"]),
+  }
+
+  // // check category
+  // const existsCategory = await Category.findById(category)
+  // if(!existsCategory) throw ErrorMessage(404,"Category not found!")
+
+  // // filter by category
+  // if(category) filter.category = category._id
+
+  // Check category only if category ID is provided
+  if (category) {
+    const existsCategory = await Category.findById(category)
+
+    if (!existsCategory) {
+      throw ErrorMessage(404, "Category not found!")
     }
 
-    // check category
-    const existsCategory = await Category.findById(category)
-    if(!existsCategory) throw ErrorMessage(404,"Category not found!")
+    filter.category = existsCategory._id
+  }
 
-    // filter by category
-    if(category) filter.category = category._id
+  // filter by minPrice and maxPrice
 
-    // filter by minPrice and maxPrice
-
-    const total = await Category.countDocuments(filter)
-    const pagination = createPagination(page,limit,total)
-    const categories = await Category.find(filter).limit(pagination.limit)
+  const total = await Category.countDocuments(filter)
+  const pagination = createPagination(page, limit, total)
+  const categories = await Category.find(filter)
+    .limit(pagination.limit)
     .skip(pagination.skip)
 
-      if(!categories || categories.length === 0) throw ErrorMessage(404,"Categories not found!")
+  if (!categories || categories.length === 0)
+    throw ErrorMessage(404, "Categories not found!")
 
-      res.status(200).json({
-        success: true,
-        categories,
-        pagination
-      })  
+  res.status(200).json({
+    success: true,
+    categories,
+    pagination,
+  })
 })
 
-/** 
+/**
  * @desc get single category
  * @api /api/category/id
  * @access Public
-*/
+ */
 
-export const getSingleCategory = asyncHandler(async(req,res) => {
-    const category = await Category.findById(req.params.id)
+export const getSingleCategory = asyncHandler(async (req, res) => {
+  const category = await Category.findById(req.params.id)
 
-    if(!category) throw ErrorMessage(404,"Category not found!")
-    
-    res.status(200).json({
-        success: true,
-        category
-      })      
+  if (!category) throw ErrorMessage(404, "Category not found!")
+
+  res.status(200).json({
+    success: true,
+    category,
+  })
 })
 
-/** 
+/**
  * @desc update category
  * @api /api/category/id
  * @access Admin only
-*/
+ */
 
-export const updateCategory = asyncHandler(async(req,res) => {
-    const category = await Category.findById(req.params.id)
-    if(!category) throw ErrorMessage(404,"Category not found!")
-    
-    // update name and slug
-    if(req.body.name){
-        category.name = req.body.name,
-        category.slug = generateSlug(req.body.name)
-    } 
-    
-    // update image if new image is uploaded
-    if(req.file){
-        category.image = `uploads/categories/${req.file.filename}`
-    }
+export const updateCategory = asyncHandler(async (req, res) => {
+  const category = await Category.findById(req.params.id)
+  if (!category) throw ErrorMessage(404, "Category not found!")
 
-    await category.save()
+  // update name and slug
+  if (req.body.name) {
+    ;((category.name = req.body.name),
+      (category.slug = generateSlug(req.body.name)))
+  }
 
-    res.status(200).json({
-        success: true,
-        category
-      })  
+  // update image if new image is uploaded
+  if (req.file) {
+    category.image = `uploads/categories/${req.file.filename}`
+  }
+
+  await category.save()
+
+  res.status(200).json({
+    success: true,
+    category,
+  })
 })
 
-/** 
+/**
  * @desc delete category
  * @api /api/category/id
  * @access Admin only
-*/
+ */
 
-export const deleteCategory = asyncHandler(async(req,res) => {
-    const category = await Category.findById(req.params.id)
-    if(!category) throw ErrorMessage(404,"Category not found!")
-    
-   await Category.findByIdAndDelete(req.params.id)    
-   res.status(200).json({
+export const deleteCategory = asyncHandler(async (req, res) => {
+  const category = await Category.findById(req.params.id)
+  if (!category) throw ErrorMessage(404, "Category not found!")
+
+  await Category.findByIdAndDelete(req.params.id)
+  res.status(200).json({
     success: true,
-    message: "Category deleted sucessfully"
-   }) 
+    message: "Category deleted sucessfully",
+  })
 })
