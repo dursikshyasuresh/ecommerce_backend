@@ -42,30 +42,10 @@ export const createCategory = asyncHandler(async (req, res) => {
 
 export const getCategories = asyncHandler(async (req, res) => {
   // accessing serach value from query
-  const { search, page, limit, category } = req.query // -> /api/categories?search=audio
+  const { search, page, limit} = req.query // -> /api/categories?search=audio
   let filter = {
     ...SearchFilter(search, ["name"]),
   }
-
-  // // check category
-  // const existsCategory = await Category.findById(category)
-  // if(!existsCategory) throw ErrorMessage(404,"Category not found!")
-
-  // // filter by category
-  // if(category) filter.category = category._id
-
-  // Check category only if category ID is provided
-  if (category) {
-    const existsCategory = await Category.findById(category)
-
-    if (!existsCategory) {
-      throw ErrorMessage(404, "Category not found!")
-    }
-
-    filter.category = existsCategory._id
-  }
-
-  // filter by minPrice and maxPrice
 
   const total = await Category.countDocuments(filter)
   const pagination = createPagination(page, limit, total)
