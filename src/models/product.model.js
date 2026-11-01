@@ -59,6 +59,10 @@ const productSchema = new mongoose.Schema({
     slug:{
         type: String,
         required: true
+    },
+    isFeatured: {
+        type: Boolean,
+        default: false
     }
 },{
     timestamps: true

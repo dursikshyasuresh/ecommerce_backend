@@ -55,56 +55,65 @@ export const createProduct = asyncHandler(async(req,res) => {
  * @access Public
 */
 
-export const getProducts = asyncHandler(async(req,res) => {
-    const {search,page,limit,category,minPrice,maxPrice,sort} = req.query   
-    let filter = {
-        ...SearchFilter(search,["name"])
-    }
+export const getProducts = asyncHandler(async (req, res) => {
+  const {
+    search,
+    page,
+    limit,
+    category,
+    minPrice,
+    maxPrice,
+    sort,
+    isNewArrival,
+    isFeatured,
+  } = req.query
 
-    if(category){
-    // check category
+  let filter = {
+    ...SearchFilter(search, ["title"]), // schema field is "title", not "name"
+  }
+
+  // category
+  if (category) {
     const existsCategory = await Category.findById(category)
-    if(!existsCategory) throw ErrorMessage(404,"Category not found!")
+    if (!existsCategory) throw ErrorMessage(404, "Category not found!")
+    filter.category = existsCategory._id
+  }
 
-    // filter by category
-    if(category) filter.category = existsCategory._id
+  // price range
+  if (minPrice || maxPrice) {
+    filter.price = {}
+    if (minPrice) filter.price.$gte = Number(minPrice)
+    if (maxPrice) filter.price.$lte = Number(maxPrice)
+  }
 
-    }
+  // new arrival & featured (query strings are "true"/"false", not booleans)
+  if (isNewArrival === "true") filter.isNewArrival = true
+  if (isFeatured === "true") filter.isFeatured = true
 
-    // filter by minPrice and maxPrice
-    if(minPrice || maxPrice){
-        filter.price = {}
-        if(minPrice) filter.price.$gte = Number(minPrice)
-        if(maxPrice) filter.price.$lte = Number(maxPrice)
-    }
+  // Map each allowed `sort` query value to a MongoDB sort object
+  // (1 = ascending, -1 = descending)
+  const sortMap = {
+    asc: { price: 1 }, // price: low to high
+    desc: { price: -1 }, // price: high to low
+    oldest: { createdAt: 1 }, // oldest products first
+    newest: { createdAt: -1 }, // newest products first
+  }
 
-    // sorting
-    let sortOptions = {createdAt: -1}
+  // Look up the sort option from the query (?sort=asc).
+  // If `sort` is missing or not one of the keys above, fall back to newest first.
+  const sortOptions = sortMap[sort] || { createdAt: -1 }
 
-    // sort by price
-    if(sort === "asc"){
-        sortOptions = {price:1}
-    }else if(sort === "desc"){
-        sortOptions = {price:-1}  
-    }else if(sort === "oldest"){
-        sortOptions = {createdAt: 1}
-    }else if(sort === "newest"){
-        sortOptions = {createdAt: -1}
-    }
-    
-    const total = await Product.countDocuments(filter)
-    const pagination = createPagination(page,limit,total)
-    const products = await Product.find(filter).sort(sortOptions)
-    .limit(pagination.limit)
+  const total = await Product.countDocuments(filter)
+  const pagination = createPagination(page, limit, total)
+  const products = await Product.find(filter)
+    .sort(sortOptions)
     .skip(pagination.skip)
-    .populate("category","name slug")
+    .limit(pagination.limit)
+    .populate("category", "name slug")
 
-    res.status(200).json({
-        success: true,
-        products,
-        pagination
-    })
+  res.status(200).json({ success: true, products, pagination })
 })
+
 
 /** 
  * @desc get single product
@@ -187,3 +196,38 @@ export const deleteProduct = asyncHandler(async(req,res) => {
         message: "Product deleted sucessfully!"
     })
 })
+
+
+/** 
+ * @desc get related product
+ * @api /api/product/:id/related
+ * @access Public
+*/
+export const getRelatedProducts = asyncHandler(async (req, res) => {
+  // Get current product ID from URL params
+  const { id } = req.params;
+
+  // Find the current product
+  const product = await Product.findById(id);
+
+  // Check whether product exists
+  if (!product) {
+    return res.status(404).json({
+      success: false,
+      message: "Product not found!",
+    });
+  }
+
+  // Find other products from the same category
+  const relatedProducts = await Product.find({
+    category: product.category,
+    _id: { $ne: product._id },
+  })
+    .sort({ createdAt: -1 })
+    .limit(5)
+
+  return res.status(200).json({
+    success: true,
+    products: relatedProducts,
+  });
+});
